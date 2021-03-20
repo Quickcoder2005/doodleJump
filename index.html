@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<title> Doodle Jump </title>
+
+<style>
+
+body{
+	background: #000000;
+}
+.loading{
+    color: white;
+}
+.loader{
+	border: 16px solid #f3f3f3;
+	border-radius: 50%;
+	border-top: 16px solid blue;
+	border-right: 16px solid green;
+	border-bottom: 16px solid red;
+	border-left: 16px solid pink;
+	width: 120px;
+	height: 120px;
+	-webkit-animation: spin 2s linear infinite;
+	animation: spin 2s linear infinite;
+}
+@-webkit-keyframes spin{
+	0% {-webkit-transform: rotate(0deg);}
+	100% {-webkit-transform: rotate(360deg);}
+}
+
+@keyframes spin{
+  0% {transform: rotate(0deg);}
+  100% {transform: rotate(360deg);}
+}
+.start{
+    visibility: hidden;
+    color: white;
+}
+#gc{
+	visibility: hidden;
+	position: fixed;
+	top: 0;
+	left: 0;
+}
+.score{
+	visibility: hidden;
+	position: absolute;
+	top: 1%;
+	left: 5.5%;	
+	color: #000000;
+	user-select: none;
+}
+.hscore{
+	visibility: hidden;
+	position: absolute;
+	top: 6.5%;
+	left: 5.5%;	
+	color: #000000;
+	user-select: none;
+}
+.pause{
+	visibility: hidden;
+	position: absolute;
+	top: 2%;
+	right: 10.5%;	
+}
+#paused{
+	width: 170%;
+	height: 170%;
+}
+
+</style>
+
+</head>
+<body>
+
+<audio src="https://soundimage.org/wp-content/uploads/2020/07/Summertime-Fun.mp3" id="music" loop></audio>
+
+<center>
+<canvas id="gc">
+</canvas>
+<h3 class="loading"> Loading... </h3>
+<div class="loader"></div>
+<div class="start">
+    <h1> Doodle Jump </h1>
+    <h3> Tap to Start </h3>
+</div>
+</center>
+
+<div class="score">
+	<span><h2> Score: <span id="scoretxt"> 0 </span></h2></span>	
+</div>
+
+<div class="hscore">
+	<span><h2> High Score: <span id="hscoretxt"> 0 </span></h2></span>	
+</div>
+
+
+<div class="pause" onclick="pause();">
+	<img src="https://i.postimg.cc/c4PN30WR/pause.png" id="paused">
+</div>
+
+<script src="https://raw.githack.com/BartikaKumar/Popify/main/script.js"></script>
+<script>
+
+var c = document.querySelector("#gc");
+var cc = c.getContext("2d");
+var w = window.innerWidth;
+var h = window.innerHeight;
+c.width = w;
+c.height = h;
+
+var bgSrc = "https://i.ibb.co/NxD6gSt/bg.png";
+var doodleSrc = "https://i.ibb.co/ZNd9xHy/doodle.png";
+var doodle2Src = "https://i.ibb.co/txRf6LB/doodle2.png";
+var platSrc = "https://i.ibb.co/swqCr6F/plat.png";
+var plat2Src = "https://i.ibb.co/5WpjRmG/2plat.png";
+var bumpSrc = "https://i.ibb.co/PNqkjc0/bump.png";
+var brokenSrc = "https://i.ibb.co/1mk4pZ8/broken.png";
+
+var sc = document.querySelector("#scoretxt");
+var hsc = document.querySelector("#hscoretxt");
+var music = document.querySelector("#music");
+
+var doodleImg = new Image();
+var doodle = {
+	width: 10/100*w,
+	height: 10/100*h,
+	x: w/2,
+	y: h/2
+}
+doodleImg.src = doodleSrc;
+
+var plats = new Array();
+
+var plat = class{
+	constructor(img, width, height, x, y, vx, vy, dan){
+		this.img = img;
+		this.width = width;
+		this.height = height;
+		this.x = x;
+		this.y = y;
+		this.vx = vx;
+		this.vy = vy;
+		this.dan = dan;
+
+		if (this.dan == 0){
+			this.img.src = brokenSrc;
+		}
+		else if ((dan == 1) || (dan == 2)){
+			this.img.src = platSrc;
+		}
+		else if (dan == 3){
+			this.img.src = bumpSrc;
+		}
+		else{
+			this.img.src = plat2Src;
+			this.vx = 0.7/100*w;
+		}
+		plats.push(this);
+	}
+	move(){
+		this.x += this.vx;
+		this.y += this.vy;
+
+		if (this.dan == 4){
+			if (this.x + this.width >= w){
+				this.vx = -1 * this.vx;
+			}
+			if (this.x <= 0){
+				this.vx = -1 * this.vx;
+			}
+		}
+	}
+	explode(){
+		this.vy = 2/100*h;
+	}	
+}
+
+var xmin = 0;
+var ymin = 0 - h/2;
+var xmax = (w - 15/100*w);
+var ymax = 0;
+
+var g = 0.05/100*h;
+var vx = 0;
+var vy = 0;
+var ong = false;
+
+var paused = false;
+
+var score = 0;
+var hscore = 0;
+
+var count = 0;
+var time = h/2;
+
+function tick(){
+	if (!paused){
+		++count;
+	}
+	setTimeout(tick, 900);
+}
+
+function jump(){
+	vy = -(1.6/100*h);
+}
+
+function pdn(e){
+	if (e.clientX < w/2){
+		if (!paused){
+			vx = -(1/100*w);
+			doodleImg.src = doodleSrc;
+		}
+	}
+	if (e.clientX > w/2){
+		if (!paused){
+			vx = 1/100*w;
+			doodleImg.src = doodle2Src;
+		}
+	}
+}
+
+function pup(){
+	vx = 0;
+}
+
+function kdn(e){
+	switch(e.keyCode){
+		case 37:
+			if (!paused){
+				vx = -(1/100*w);
+				doodleImg.src = doodleSrc;
+			}
+			break;
+		case 39:
+			if (!paused){
+				vx = 1/100*w;
+				doodleImg.src = doodle2Src;
+				break;
+			}
+	}
+}
+
+function kup(e){
+	switch(e.keyCode){
+		case 37:
+			vx = 0;
+			break;
+		case 39:
+			vx = 0;
+			break;
+	}
+}
+
+function genFirst(){
+	var fs = new plat(new Image(), 15/100*w, 2.5/100*h, doodle.x, doodle.y, 0, 0, 1);
+}
+
+function genInit(){
+	for (var i = 0; i < 20; i++){
+		var pt = new plat(new Image(), 15/100*w, 2.5/100*h, Math.floor(Math.random()*(xmax - xmin) + xmin), Math.floor(Math.random()*(h - 0) + 0), 0, 0, Math.floor(Math.random()*5));		
+	}
+}
+
+function genPlat(){
+	for (var i = 0; i < 15; i++){
+		var pt = new plat(new Image(), 15/100*w, 2.5/100*h, Math.floor(Math.random()*(xmax - xmin) + xmin), Math.floor(Math.random()*(ymax - ymin) + ymin), 0, 0, Math.floor(Math.random()*5));
+	}
+	ymin -= h/2;
+	ymax -= h/2;
+}
+
+function pause(){
+	paused = true;
+	alertify({
+	    title: "Game Paused",
+	    confirmButtonText: "Continue",
+	    onConfirmed: function(){
+	    	paused = false;
+	    }
+	});
+}
+
+function gameOver(){
+	clearTimeout(time);
+	paused = true;
+	if (hscore <= score){
+		hscore = score;
+	}
+	score = 0;
+	alertify({
+		title: "Game Over",
+		confirmButtonText: "Restart",
+		onConfirmed: function(){
+			plats = new Array();
+			paused = false;
+			time = h/2;
+			ymin = 0 - h/2;
+			ymax = 0;
+			doodle.y = h/2;
+			genFirst();
+			genInit();
+		}
+	});
+}
+
+function update(){
+	if (!paused){
+		doodle.x += vx;
+		doodle.y += vy;
+		
+		if (!ong){
+			vy += g;
+		}
+		ong = false;
+
+		for (i of plats){
+			if (
+				(doodle.x + doodle.width > i.x) &&
+				(doodle.x < i.x + i.width) &&
+				(doodle.y + doodle.height >= i.y) &&
+				(doodle.y + doodle.height <= i.y + 1.5/100*h) &&
+				(vy > 0)
+			){
+				if (i.dan == 0){
+					i.explode();
+				}
+				else if (i.dan == 3){
+					count = 0;
+				    score += 3;
+					doodle.y = i.y - doodle.height;
+					ong = true;
+					vy = -(2.3/100*h);
+				}
+				else{
+					count = 0;
+					++score;
+					doodle.y = i.y - doodle.height;
+					ong = true;
+					jump();					
+				}
+			}
+			if (i.y > doodle.y + h/2){
+				plats.splice(plats.indexOf(i), 1);
+			}
+			i.move();
+		}
+
+		if (doodle.x <= 0){
+			doodle.x = 0;
+		}
+		if (doodle.x + doodle.width >= w){
+			doodle.x = w - doodle.width;
+		}
+		sc.textContent = score;
+		hsc.textContent = hscore;
+		
+		if (count == 3){
+			count = 0;
+			vy = 0;
+			gameOver();
+		}
+
+		if (vy > 3/100*h){
+			vy = 3/100*h;
+		}
+
+		if (doodle.y < time){
+			genPlat();
+			time -= h/2;
+		}
+	}
+}
+
+function render(){
+	cc.setTransform(1, 0, 0, 1, 0, 0);
+	cc.clearRect(0, 0, w, h);
+	
+	cc.translate(0, -doodle.y + c.height/2);
+
+	cc.drawImage(doodleImg, doodle.x, doodle.y, doodle.width, doodle.height);
+	for (i of plats){
+		cc.drawImage(i.img, i.x, i.y, i.width, i.height);
+	}
+}
+
+function loop(){
+	render();
+	update();
+
+	requestAnimationFrame(loop);
+}
+
+function init(){
+	genFirst();
+	genInit();
+	tick();
+	loop();
+	document.body.style.background = "url('https://i.ibb.co/NxD6gSt/bg.png') center center no-repeat fixed";
+	document.body.style.backgroundSize = "100% 100%";
+	document.querySelector(".pause").style.visibility = "visible";
+	document.querySelector("#gc").style.visibility = "visible";
+	document.querySelector(".score").style.visibility = "visible";
+	document.querySelector(".hscore").style.visibility = "visible";
+	document.addEventListener("keydown", kdn);
+	document.addEventListener("keyup", kup);
+	document.addEventListener("pointerdown", pdn);
+	document.addEventListener("pointerup", pup);	
+	jump();
+}
+
+function start(){
+	document.querySelector(".start").style.visibility = "hidden";
+	document.removeEventListener("click", start);
+	init();
+}
+
+function main(){
+	document.querySelector(".loading").style.visibility = "hidden";
+	document.querySelector(".loader").style.visibility = "hidden";
+	document.querySelector(".start").style.visibility = "visible";
+	document.addEventListener("click", start);
+	document.onclick = function(){
+		music.play();
+	}
+}
+
+window.onload = function(){
+	Promise.all(Array.from(document.images).filter(img => !img.complete).map(img => new Promise(resolve => { 
+			img.onload = img.onerror = resolve; 
+		}))).then(function(){
+    		main();
+	});
+	window.onresize = function(){
+		setTimeout(function(){
+			window.location.reload();
+		});
+	}
+}
+
+</script>
+</body>
+</html>
