@@ -349,11 +349,11 @@ function update(){
 			i.move();
 		}
 
-		if (doodle.x <= 0){
-			doodle.x = 0;
+		if (doodle.x <= 0 - doodle.width){
+			doodle.x = 99.9/100*w;
 		}
-		if (doodle.x + doodle.width >= w){
-			doodle.x = w - doodle.width;
+		if (doodle.x >= w){
+			doodle.x = 0 - doodle.width;
 		}
 		sc.textContent = score;
 		hsc.textContent = hscore;
